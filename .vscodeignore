@@ -1,0 +1,35 @@
+# Source files
+src/**
+tsconfig.json
+eslint.config.mjs
+
+# Development files
+.git/**
+.gitignore
+.cursor/**
+.DS_Store
+
+# Node modules (only needed for development)
+node_modules/**
+
+# Development scripts and configs
+*.log
+.vscode-test/**
+.vscode/launch.json
+.vscode/tasks.json
+
+# Source maps (optional, can be included for debugging)
+*.map
+
+# Package files
+package-lock.json
+
+# Test files
+test/**
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Webpack config
+webpack.config.js
