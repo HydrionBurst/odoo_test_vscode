@@ -1,0 +1,128 @@
+{
+  "name": "odoo-test",
+  "displayName": "Odoo Test",
+  "description": "Odoo Test Extension",
+  "publisher": "hydrionburst",
+  "icon": "logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HydrionBurst/odoo-test-vscode"
+  },
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Testing"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "odooTest.changeDatabaseName",
+        "title": "Change Test Database Name",
+        "category": "Odoo Test"
+      },
+      {
+        "command": "odooTest.changeUpgradeFrom",
+        "title": "Change Upgrade From Version",
+        "category": "Odoo Test"
+      },
+      {
+        "command": "odooTest.openSettings",
+        "title": "Open Settings",
+        "category": "Odoo Test"
+      },
+      {
+        "command": "odooTest.rerun",
+        "title": "Rerun Last Command",
+        "category": "Odoo Test"
+      },
+      {
+        "command": "odooTest.resetPaths",
+        "title": "Reset Paths",
+        "category": "Odoo Test"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Odoo Test",
+      "properties": {
+        "odooTest.databaseName": {
+          "type": "string",
+          "default": "odoo_test",
+          "description": "The name of the test database to use for Odoo tests.",
+          "minLength": 1,
+          "scope": "resource"
+        },
+        "odooTest.upgradeFrom": {
+          "type": "string",
+          "default": "current",
+          "description": "The branch name to upgrade from for Odoo upgrade tests.",
+          "scope": "resource"
+        },
+        "odooTest.odooBinPath": {
+          "type": "string",
+          "description": "The path to the odoo-bin executable.",
+          "minLength": 1,
+          "scope": "resource"
+        },
+        "odooTest.addonsPath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The paths to the Odoo addons directories.",
+          "minItems": 1,
+          "scope": "resource"
+        },
+        "odooTest.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "The path to the Odoo configuration file.",
+          "scope": "resource"
+        },
+        "odooTest.upgradePath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The paths to the Odoo upgrade directories.",
+          "scope": "resource"
+        },
+        "odooTest.dumpPath": {
+          "type": "string",
+          "description": "The directory path for storing database dumps.",
+          "scope": "resource"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "webpack --mode production",
+    "compile": "webpack --mode development",
+    "watch": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/node": "^24.0.14",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "prettier": "^3.6.2",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.0.0",
+    "webpack": "^5.100.2",
+    "webpack-cli": "^6.0.1",
+    "webpack-node-externals": "^3.0.0"
+  }
+}

@@ -1,0 +1,38 @@
+# Node dependencies
+node_modules/
+
+# VSCode settings
+.vscode/
+
+# Output build
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+
+# Env files
+.env
+.env.*
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Mac system files
+.DS_Store
+
+# Optional: Ignore lock files if you don't want to commit them
+package-lock.json
+yarn.lock
+
+# Optional: Ignore coverage reports
+coverage/
+
+# Optional: Ignore idea project files
+.idea/
+
+*.vsix
