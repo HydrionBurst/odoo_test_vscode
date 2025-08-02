@@ -11,8 +11,8 @@ import {
     restoreDatabase,
 } from "../utils/database";
 import {
-    checkoutGitBranch,
-    getGitBranchName,
+    checkoutGit,
+    getGitCommit,
     getGitRepoPaths,
     isGitRepoCommitted,
     isLocalGitBranch,
@@ -33,7 +33,7 @@ export async function prepareUpgrade(
     withPrepare: boolean = true,
 ) {
     const addonsPaths = Configuration.get("addonsPath");
-    const gitBranches: { [repoPath: string]: string } = {};
+    const gitCommits: { [repoPath: string]: string } = {};
     if (upgradeFrom !== "current") {
         for (const repoPath of await getGitRepoPaths(addonsPaths)) {
             if (!(await isLocalGitBranch(repoPath, upgradeFrom))) {
@@ -50,17 +50,17 @@ export async function prepareUpgrade(
                     continue;
                 }
             }
-            const currentBranchName = await getGitBranchName(repoPath);
-            if (currentBranchName) {
+            const headCommit = await getGitCommit(repoPath);
+            if (headCommit) {
                 if (!(await isGitRepoCommitted(repoPath))) {
                     const repoName = path.basename(repoPath);
                     vscode.window.showErrorMessage(`Git repo ${repoName} has uncommitted changes`);
                     return;
                 }
-                gitBranches[repoPath] = currentBranchName;
+                gitCommits[repoPath] = headCommit;
             }
         }
-        if (Object.keys(gitBranches).length === 0) {
+        if (Object.keys(gitCommits).length === 0) {
             vscode.window.showErrorMessage(
                 `No git valid localbranches repo found in ${addonsPaths.join(", ")}`,
             );
@@ -71,7 +71,7 @@ export async function prepareUpgrade(
     try {
         // git checkout to upgradeFrom for each branch
         const checkoutResults = await Promise.all(
-            Object.keys(gitBranches).map((repoPath) => checkoutGitBranch(repoPath, upgradeFrom)),
+            Object.keys(gitCommits).map((repoPath) => checkoutGit(repoPath, upgradeFrom)),
         );
         if (checkoutResults.some((result) => !result)) {
             return;
@@ -110,8 +110,8 @@ export async function prepareUpgrade(
     } finally {
         // checkout to the original branch for each repo
         await Promise.all(
-            Object.entries(gitBranches).map(([repoPath, branchName]) =>
-                checkoutGitBranch(repoPath, branchName),
+            Object.entries(gitCommits).map(([repoPath, branchName]) =>
+                checkoutGit(repoPath, branchName),
             ),
         );
     }

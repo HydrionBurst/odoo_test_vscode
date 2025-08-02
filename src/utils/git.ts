@@ -20,15 +20,15 @@ export async function getGitRepoPaths(paths: string[]): Promise<string[]> {
     return uniqueRepos;
 }
 
-export async function getGitBranchName(repoPath: string): Promise<string> {
+export async function getGitCommit(repoPath: string): Promise<string> {
     try {
-        const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", {
+        const { stdout } = await execAsync("git rev-parse HEAD", {
             cwd: repoPath,
         });
         return stdout?.toString().trim() || "";
     } catch (error: any) {
         vscode.window.showErrorMessage(
-            `Failed to get git branch for ${repoPath}: ${error.message}`,
+            `Failed to get git commit for ${repoPath}: ${error.message}`,
         );
         return "";
     }
@@ -59,17 +59,17 @@ export async function isLocalGitBranch(path: string, branch: string): Promise<bo
 /**
  * Checkout to a git branch
  * @param repoPath - The path to checkout to
- * @param branchName - The branch to checkout to
+ * @param name - The branch/commit to checkout to
  */
-export async function checkoutGitBranch(repoPath: string, branchName: string): Promise<boolean> {
+export async function checkoutGit(repoPath: string, name: string): Promise<boolean> {
     const repoName = path.basename(repoPath);
     try {
-        vscode.window.showInformationMessage(`Checkout to ${branchName} for ${repoName}`);
-        await execAsync(`git checkout ${branchName}`, { cwd: repoPath });
+        vscode.window.showInformationMessage(`Checkout to ${name} for ${repoName}`);
+        await execAsync(`git checkout ${name}`, { cwd: repoPath });
         return true;
     } catch (error: any) {
         vscode.window.showErrorMessage(
-            `Failed to checkout to ${branchName} for ${repoName}: ${error.message}`,
+            `Failed to checkout to ${name} for ${repoName}: ${error.message}`,
         );
         return false;
     }
