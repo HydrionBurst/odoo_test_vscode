@@ -5,6 +5,8 @@ import { parseFilePathInfo } from "../utils/odoo";
 
 export class OdooAddonsCodeLensProvider implements vscode.CodeLensProvider {
     private _runMode: "standard" | "update" | "dump" = "standard";
+    private _hotTestMode: boolean = false;
+    private _hotTestlogSqlEnabled: boolean = false;
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
@@ -21,6 +23,25 @@ export class OdooAddonsCodeLensProvider implements vscode.CodeLensProvider {
                 break;
         }
         this._onDidChangeCodeLenses.fire();
+    }
+
+    public setHotTestMode(enabled: boolean): void {
+        this._hotTestMode = enabled;
+        this._hotTestlogSqlEnabled = false;
+        this._onDidChangeCodeLenses.fire();
+    }
+
+    public isHotTestMode(): boolean {
+        return this._hotTestMode;
+    }
+
+    public toggleHotTestLogSql(): void {
+        this._hotTestlogSqlEnabled = !this._hotTestlogSqlEnabled;
+        this._onDidChangeCodeLenses.fire();
+    }
+
+    public getHotTestLogSqlEnabled(): boolean {
+        return this._hotTestlogSqlEnabled;
     }
 
     async provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
@@ -64,7 +85,11 @@ export class OdooAddonsCodeLensProvider implements vscode.CodeLensProvider {
         }
 
         if (fileCategory === "addons_test") {
-            this.addLensForStandardTests(lenses, symbols, moduleName, databaseName);
+            if (this._hotTestMode) {
+                this.addLensForHotTests(lenses, symbols, moduleName);
+            } else {
+                this.addLensForStandardTests(lenses, symbols, moduleName, databaseName);
+            }
         }
 
         return lenses;
@@ -114,6 +139,49 @@ export class OdooAddonsCodeLensProvider implements vscode.CodeLensProvider {
                     arguments: ["standalone"],
                 }),
             );
+        }
+    }
+
+    private addLensForHotTests(
+        lenses: vscode.CodeLens[],
+        symbols: vscode.DocumentSymbol[],
+        moduleName: string,
+    ) {
+        for (const symbol of symbols) {
+            if (symbol.kind === vscode.SymbolKind.Class) {
+                const testMethods = symbol.children.filter(
+                    (child) =>
+                        child.kind === vscode.SymbolKind.Method && child.name.startsWith("test"),
+                );
+
+                if (!testMethods.length) {
+                    continue;
+                }
+                for (const test of [symbol, ...testMethods]) {
+                    lenses.push(
+                        new vscode.CodeLens(test.range, {
+                            title: `$(play) Run Hot`,
+                            command: "odooTest.runHotTest",
+                            arguments: [
+                                this,
+                                moduleName,
+                                symbol.name,
+                                test === symbol ? undefined : test.name,
+                            ],
+                        }),
+                    );
+
+                    // Add log SQL toggle button
+                    const logSqlStatus = this._hotTestlogSqlEnabled ? "ON" : "OFF";
+                    lenses.push(
+                        new vscode.CodeLens(test.range, {
+                            title: `$(database) Log SQL (${logSqlStatus})`,
+                            command: "odooTest.toggleHotTestLogSql",
+                            arguments: [],
+                        }),
+                    );
+                }
+            }
         }
     }
 

@@ -46,6 +46,11 @@
         "command": "odooTest.resetPaths",
         "title": "Reset Paths",
         "category": "Odoo Test"
+      },
+      {
+        "command": "odooTest.startHotTest",
+        "title": "Start Hot Test",
+        "category": "Odoo Test"
       }
     ],
     "configuration": {

@@ -33,3 +33,8 @@ test/**
 
 # Webpack config
 webpack.config.js
+
+# Python cache files
+**/__pycache__/**
+*.pyc
+*.pyo

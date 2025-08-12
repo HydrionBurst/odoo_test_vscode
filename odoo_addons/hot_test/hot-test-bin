@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""
+Hot Test Binary - A command-line tool for managing Odoo hot test functionality.
+
+This script provides subcommands to:
+1. Run tests on specific modules with test tags
+2. Enable/disable SQL logging
+"""
+
+import json
+import subprocess
+import argparse
+import sys
+
+
+def execute_psql_command(database, sql_command):
+    """
+    Execute a SQL command using psql CLI.
+
+    Args:
+        database: Database name
+        sql_command: SQL command to execute
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Add command execution options
+        full_cmd = ['psql', '-d', database, '-c', sql_command]
+
+        result = subprocess.run(
+            full_cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0:
+            return True
+        else:
+            print(f"Error executing SQL command: {result.stderr}", file=sys.stderr)
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("Error: psql command timed out", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"Error executing psql command: {e}", file=sys.stderr)
+        return False
+
+
+def send_notification(payload=None):
+    """
+    Send a notification to the hot_test PostgreSQL channel using psql CLI.
+    Database is always 'postgres'.
+    Uses psql default configuration.
+
+    Args:
+        payload: Notification payload (dict)
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Prepare SQL command for notification
+        payload_json = json.dumps(payload).replace("'", "''")  # Escape single quotes
+        sql_command = f"SELECT pg_notify('hot_test', '{payload_json}');"
+
+        if execute_psql_command('postgres', sql_command):
+            print(f"Notification sent: {payload}")
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(f"Error sending notification: {e}", file=sys.stderr)
+        return False
+
+
+def run_test_command(args):
+    """
+    Handle the run_test subcommand.
+
+    Args:
+        args: Parsed command line arguments
+    """
+    # Prepare notification payload
+    payload = {
+        'jsonrpc': '2.0',
+        'method': 'run_test',
+        'params': {
+            'module': args.module,
+            'test_tags': args.test_tags,
+        }
+    }
+
+    success = send_notification(payload=payload)
+
+    if not success:
+        sys.exit(1)
+
+
+def log_sql_command(args):
+    """
+    Handle the log-sql subcommand.
+
+    Args:
+        args: Parsed command line arguments
+    """
+    # Determine if SQL logging should be enabled
+    enabled = args.enable
+
+    # Prepare notification payload
+    payload = {
+        'jsonrpc': '2.0',
+        'method': 'log_sql',
+        'params': {
+            'enabled': enabled,
+        }
+    }
+
+    success = send_notification(payload=payload)
+
+    if not success:
+        sys.exit(1)
+
+
+def main():
+    """Main entry point for the hot_test_bin command."""
+    parser = argparse.ArgumentParser(
+        description='Hot Test Binary - Manage Odoo hot test functionality'
+    )
+
+    # Create subparsers for different commands
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # run_test subcommand
+    run_test_parser = subparsers.add_parser('run-test', help='Run tests on a specific module')
+    run_test_parser.add_argument('--module', required=True, help='Module name to test')
+    run_test_parser.add_argument('--test-tags', required=True, help='Test tags to filter tests')
+    run_test_parser.set_defaults(func=run_test_command)
+
+    # log-sql subcommand
+    log_sql_parser = subparsers.add_parser('log-sql', help='Enable/disable SQL logging')
+    log_sql_group = log_sql_parser.add_mutually_exclusive_group(required=True)
+    log_sql_group.add_argument('--enable', action='store_true', help='Enable SQL logging')
+    log_sql_group.add_argument('--disable', action='store_true', help='Disable SQL logging')
+    log_sql_parser.set_defaults(func=log_sql_command)
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Check if a subcommand was provided
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    # Execute the appropriate command
+    args.func(args)
+
+
+if __name__ == '__main__':
+    main()

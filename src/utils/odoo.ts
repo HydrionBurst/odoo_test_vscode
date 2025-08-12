@@ -189,13 +189,19 @@ export async function isModuleInstalled(module: string): Promise<boolean> {
  * This will use VSCode's debug API to start Odoo with -i <module> -d <database> --stop-after-init.
  * Returns true if installation succeeded, false otherwise.
  */
-export async function installModule(moduleName: string): Promise<boolean> {
+export async function installModule(
+    moduleName: string,
+    extraArgs: string[] = [],
+): Promise<boolean> {
     const wsFolder = vscode.workspace.workspaceFolders?.[0];
     if (!wsFolder) {
         vscode.window.showErrorMessage("Cannot find the workspace");
         return false;
     }
-    const { workspaceFolder, configuration: debugConfig } = getDebugConfiguration();
+    const { workspaceFolder, configuration: debugConfig } = getDebugConfiguration(
+        "standard",
+        extraArgs,
+    );
     if (!workspaceFolder || !debugConfig) {
         return false;
     }
@@ -213,6 +219,30 @@ export async function installModule(moduleName: string): Promise<boolean> {
         );
     }
     return success;
+}
+
+export async function startHotTestServer() {
+    const extraAddonsPath = path.join(Configuration.extensionPath, "odoo_addons");
+    const { workspaceFolder, configuration: odooTestConfig } = getDebugConfiguration("standard", [
+        extraAddonsPath,
+    ]);
+    if (!workspaceFolder || !odooTestConfig) {
+        return;
+    }
+
+    const database = Configuration.get("databaseName") as string;
+    const args = ["-d", database, "--max-cron-threads", "0"];
+
+    const debugConfig: vscode.DebugConfiguration = {
+        ...odooTestConfig,
+        args: Array.isArray(odooTestConfig.args) ? [...odooTestConfig.args, ...args] : args,
+    };
+    const success = await startDebuggingAndWait(workspaceFolder, debugConfig);
+    if (!success) {
+        vscode.window.showErrorMessage(
+            "Failed to start Odoo tests. Please check the configuration in .vscode/launch.json under your Odoo project directory.",
+        );
+    }
 }
 
 export async function runStandardTest(
@@ -305,6 +335,21 @@ export async function runUpgradeTest(testTags: string) {
     if (!success) {
         vscode.window.showErrorMessage(
             "Failed to start Odoo upgrade check. Please check the configuration in .vscode/launch.json.",
+        );
+    }
+}
+
+export async function forceRemoveHackModules(moduleNames: string[]) {
+    const databaseName = Configuration.get("databaseName") as string;
+    const moduleNamesStr = `(${moduleNames.map((name) => `'${name}'`).join(",")})`;
+    const moduleExternalIdsStr = `(${moduleNames.map((name) => `'module_${name}'`).join(",")})`;
+    try {
+        await execAsync(
+            `psql -d ${databaseName} -t -c "DELETE FROM ir_module_module WHERE name IN ${moduleNamesStr}; DELETE FROM ir_model_data WHERE module = 'base' AND name IN ${moduleExternalIdsStr}"`,
+        );
+    } catch {
+        vscode.window.showErrorMessage(
+            `Failed to force remove hack module ${moduleNames.join(", ")} for database(${databaseName}).`,
         );
     }
 }

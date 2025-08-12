@@ -5,6 +5,8 @@ import * as vscode from "vscode";
 import { OdooVersion } from "./odoo";
 
 export class Configuration {
+    static extensionPath: string;
+
     static get(key: string): any {
         const config = vscode.workspace.getConfiguration("odooTest");
         if (!config.has(key)) {

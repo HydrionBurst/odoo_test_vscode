@@ -9,7 +9,8 @@ testing workflows.
 
 ## Features
 
-###  Addons Testing
+### Addons Test
+
 - **Automatic Detection**: Automatically detects Odoo test files and identifies test classes and methods
 - **Run Test Buttons**: Provides "Run Test" buttons above each test method for quick execution
 - **Multiple Test Modes**: Supports standard tests, update tests, and dump tests with easy mode switching
@@ -26,7 +27,17 @@ testing workflows.
   <img src="docs/images/standalone_test.png" alt="Standalone Test Interface" width="300" style="margin-left: 20px;">
 </div>
 
-### 🔄 Upgrade Testing
+### ⚡ Hot Test
+- **Start**: Open the Command Palette (Ctrl + Shift + P) and run "Odoo Test: Start Hot Test".
+- **Run tests**: Click the "Run Hot" CodeLens above a test class or any method starting with `test`.
+- **Auto reload**: Hot Test automatically reloads the Python test module. No need to restart Odoo after changing test code.
+- **Fast iteration**: Save your changes and click "Run Hot" to immediately re-run for rapid feedback.
+
+<div>
+  <img src="docs/images/hot_test.png" alt="Hot Test Interface" width="300" style="margin-left: 20px;">
+</div>
+
+### 🔄 Upgrade Test
 - **Upgrade Script Support**: Detects and provides execution buttons for upgrade scripts in upgrade paths
 <div>
   <img src="docs/images/upgrade_script.png" alt="Upgrade Script Interface" width="300" style="margin-left: 20px;">

@@ -9,6 +9,7 @@ import { checkUpgradeTest, prepareUpgrade, upgradeDatabase } from "./commands/ru
 import { rerun, saveLastCommand } from "./commands/rerun";
 import { runStandaloneTest } from "./commands/runStandaloneTest";
 import { runDumpTest, runTest, runUpdateTest } from "./commands/runStandardTest";
+import { runHotTest, startHotTest, toggleHotTestLogSql } from "./commands/runHotTest";
 import { setDatabaseName, setUpgradeFrom } from "./commands/setConfiguration";
 import { NonBlockingMutex } from "./utils/tools";
 
@@ -24,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (!Configuration.get("odooBinPath")) {
         Configuration.autoSetPaths();
     }
+    Configuration.extensionPath = context.extensionPath;
 
     const odooAddonsCodeLensProvider = new OdooAddonsCodeLensProvider();
     const odooUpgradeCodeLensProvider = new OdooUpgradeCodeLensProvider();
@@ -58,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
         ["odooTest.runUpdateTest", debugCommandMutex.guard(runUpdateTest)],
         ["odooTest.runStandaloneTest", debugCommandMutex.guard(runStandaloneTest)],
         ["odooTest.runDumpTest", debugCommandMutex.guard(runDumpTest)],
+        ["odooTest.runHotTest", runHotTest], // Hot test doesn't need mutex since it just sends notification
         ["odooTest.prepareUpgrade", debugCommandMutex.guard(prepareUpgrade)],
         ["odooTest.upgradeDatabase", debugCommandMutex.guard(upgradeDatabase)],
         ["odooTest.checkUpgradeTest", debugCommandMutex.guard(checkUpgradeTest)],
@@ -75,6 +78,11 @@ export function activate(context: vscode.ExtensionContext) {
         ["odooTest.cleanupTest", debugCommandMutex.guard(databaseCommandMutex.guard(cleanupTest))],
 
         ["odooTest.switchRunMode", () => odooAddonsCodeLensProvider.switchRunMode()],
+        ["odooTest.toggleHotTestLogSql", () => toggleHotTestLogSql(odooAddonsCodeLensProvider)],
+        [
+            "odooTest.startHotTest",
+            debugCommandMutex.guard(() => startHotTest(odooAddonsCodeLensProvider)),
+        ],
         ["odooTest.rerun", rerun],
         ["odooTest.resetPaths", Configuration.autoSetPaths],
         [

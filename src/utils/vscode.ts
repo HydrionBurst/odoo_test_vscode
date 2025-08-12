@@ -35,9 +35,13 @@ export async function startDebuggingAndWait(
 /**
  * find the first launch configuration with the given name
  * @param debugConfigurationName name of the launch configuration
+ * @param extraAddonsPaths extra addons paths to include
  * @returns { workspaceFolder, configuration }
  */
-export function getDebugConfiguration(name: "standard" | "standalone" | "upgrade" = "standard"): {
+export function getDebugConfiguration(
+    name: "standard" | "standalone" | "upgrade" = "standard",
+    extraAddonsPaths: string[] = [],
+): {
     workspaceFolder: vscode.WorkspaceFolder | undefined;
     configuration: vscode.DebugConfiguration | undefined;
 } {
@@ -81,7 +85,17 @@ export function getDebugConfiguration(name: "standard" | "standalone" | "upgrade
     const addonsPaths = Configuration.get("addonsPath").map((p: string) =>
         path.relative(workspaceFolder.uri.fsPath, p),
     );
-    args.push("--addons-path", addonsPaths.join(","));
+
+    // Add extra addons paths if provided
+    const allAddonsPaths = [...addonsPaths];
+    for (const extraPath of extraAddonsPaths) {
+        const relativePath = path.relative(workspaceFolder.uri.fsPath, extraPath);
+        if (!allAddonsPaths.includes(relativePath)) {
+            allAddonsPaths.push(relativePath);
+        }
+    }
+
+    args.push("--addons-path", allAddonsPaths.join(","));
 
     if (name === "upgrade") {
         const upgradePath = Configuration.get("upgradePath").map((p: string) =>

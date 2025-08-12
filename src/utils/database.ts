@@ -92,6 +92,25 @@ export function deleteDump(dumpName: string): number {
     return 1;
 }
 
+/**
+ * Send notification to PostgreSQL using pg_notify
+ */
+export async function sendNotification(channel: string, payload: string): Promise<void> {
+    try {
+        // Properly escape the payload for PostgreSQL string literal
+        const escapedPayload = payload
+            .replace(/\\/g, "\\\\") // Escape backslashes first
+            .replace(/'/g, "''") // Escape single quotes for PostgreSQL
+            .replace(/"/g, '\\"'); // Escape double quotes for PostgreSQL
+        await execAsync(
+            `psql -d postgres -c "SELECT pg_notify('${channel}', '${escapedPayload}');"`,
+        );
+    } catch (error: any) {
+        vscode.window.showErrorMessage(`Failed to send notification: ${error.message}`);
+        throw error;
+    }
+}
+
 function getDumpDir(): string {
     const databaseName = Configuration.get("databaseName") as string;
     const dumpDir = path.join(Configuration.get("dumpPath"), databaseName);

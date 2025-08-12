@@ -10,8 +10,7 @@ let lastCommand: {
 export function saveLastCommand(commandName: string, command: Function) {
     return (...args: any[]) => {
         // Deep copy the arguments
-        const argsCopy = JSON.parse(JSON.stringify(args));
-        lastCommand = { command: commandName, args: argsCopy };
+        lastCommand = { command: commandName, args: args };
         return command(...args);
     };
 }

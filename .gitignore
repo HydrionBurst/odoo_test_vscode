@@ -1,8 +1,7 @@
 # Node dependencies
 node_modules/
 
-# VSCode settings
-.vscode/
+/.*/
 
 # Output build
 out/
@@ -32,7 +31,9 @@ yarn.lock
 # Optional: Ignore coverage reports
 coverage/
 
-# Optional: Ignore idea project files
-.idea/
-
 *.vsix
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
