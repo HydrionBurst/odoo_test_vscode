@@ -1,12 +1,9 @@
 import json
 import logging
-import selectors
+import socket
 import threading
 import time
 
-from psycopg2 import InterfaceError
-
-import odoo
 from odoo.service.server import CommonServer
 
 _logger = logging.getLogger(__name__)
@@ -14,59 +11,62 @@ _logger = logging.getLogger(__name__)
 
 class Bus(threading.Thread):
     """
-    Dedicated thread for listening to PostgreSQL notifications and handling simple commands
+    Dedicated thread for listening UDP notifications and handling simple commands
     """
     methods = {}
     stop_event = threading.Event()
 
     def __init__(self):
         super().__init__(daemon=True, name=f'{__name__}.Bus')
+        self._sock = None
+        self._host = '127.0.0.1'
+        self._port = 9999
 
     def loop(self):
-        with odoo.sql_db.db_connect('postgres').cursor() as cr, \
-                selectors.DefaultSelector() as sel:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            self._sock = sock
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((self._host, self._port))
+            sock.setblocking(False)
+            _logger.info("Hot test UDP bus listening on %s:%s", self._host, self._port)
 
-            cr.execute("LISTEN hot_test")
-            cr.commit()
-            conn = cr._cnx
-            sel.register(conn, selectors.EVENT_READ)
             while not self.stop_event.is_set():
-                if sel.select(50):  # 50 second timeout
-                    conn.poll()
-                    while conn.notifies:
-                        notification = conn.notifies.pop()
-                        try:
-                            self._handle_notification(notification.payload)
-                            conn.poll()
-                            conn.notifies.clear()  # ignore additional notifications
-                        except Exception as e:
-                            _logger.error("Error handling hot_test notification: %s", e, exc_info=True)
+                try:
+                    sock.settimeout(1.0)  # 1 second timeout
+                    data, addr = sock.recvfrom(65536)
+                    payload = data.decode('utf-8', errors='ignore')
+                    self._handle_notification(payload)
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    if not self.stop_event.is_set():
+                        _logger.error("Error handling UDP payload: %s", e, exc_info=True)
 
     def _handle_notification(self, payload):
-        """Handle a hot_test notification with JSON-RPC 2.0 format."""
+        """Handle a UDP message with JSON-RPC 2.0 format."""
         try:
             data = json.loads(payload)
         except json.JSONDecodeError as e:
-            _logger.error("Invalid JSON in hot_test notification: %s", e)
+            _logger.error("Invalid JSON in UDP payload: %s", e)
             return
 
         if not isinstance(data, dict):
-            _logger.error("Invalid payload in hot_test notification: %s", payload)
+            _logger.error("Invalid payload in UDP message: %s", payload)
             return
 
         # Validate JSON-RPC 2.0 format
         if data.get('jsonrpc') != '2.0':
-            _logger.error("Invalid JSON-RPC version in notification: %s", data.get('jsonrpc'))
+            _logger.error("Invalid JSON-RPC version in message: %s", data.get('jsonrpc'))
             return
 
         method = self.methods.get(data.get('method'))
         if not method:
-            _logger.error("Missing method in JSON-RPC notification: %s", data)
+            _logger.error("Missing method in JSON-RPC message: %s", data)
             return
 
         params = data.get('params')
 
-        _logger.info("Received JSON-RPC notification: method=%s", method)
+        _logger.info("Received JSON-RPC message: method=%s", data.get('method'))
 
         if isinstance(params, dict):
             method(**params)
@@ -75,7 +75,7 @@ class Bus(threading.Thread):
         elif params is None:
             method()
         else:
-            _logger.error("Invalid params in JSON-RPC notification: %s", params)
+            _logger.error("Invalid params in JSON-RPC message: %s", params)
             return
 
     def run(self):
@@ -83,10 +83,11 @@ class Bus(threading.Thread):
             try:
                 self.loop()
             except Exception as exc:
-                if isinstance(exc, InterfaceError) and self.stop_event.is_set():
+                if self.stop_event.is_set():
                     continue
-                _logger.exception("Bus thread error, sleep and retry")
+                _logger.error("Bus thread error, sleep and retry: %s", exc, exc_info=True)
                 time.sleep(3)
+
 
 CommonServer.on_stop(Bus.stop_event.set)
 bus = Bus()
