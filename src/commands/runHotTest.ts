@@ -1,40 +1,30 @@
-import * as path from "path";
 import * as vscode from "vscode";
 
 import { OdooStandardCodeLensProvider } from "../codelens/OdooStandardCodeLensProvider";
-import { Configuration } from "../utils/configuration";
-import { sendNotification } from "../utils/database";
+import { installModule, isModuleInstalled, startHotTestShell } from "../utils/odoo";
+import { indentPython } from "../utils/tools";
 import {
-    forceRemoveHackModules,
-    installModule,
-    isModuleInstalled,
-    startHotTestServer,
-} from "../utils/odoo";
-import { showInformationMessage } from "../utils/vscode";
+    getCurrentDebugTerminal,
+    sendTextToCurrentDebugTerminal,
+    showInformationMessage,
+    stopCurrentDebugTerminal,
+} from "../utils/vscode";
 
-/**
- * Start hot test mode
- */
 export async function startHotTest(odooStandardCodeLensProvider: OdooStandardCodeLensProvider) {
     try {
-        // Check if hot_test module is installed
-        const isInstalled = await isModuleInstalled("hot_test");
-        if (!isInstalled) {
-            const extraAddonsPath = path.join(Configuration.extensionPath, "odoo_addons");
-            await installModule("hot_test", [extraAddonsPath]);
-        }
-
         // Set hot test mode to true
+        if (!(await isModuleInstalled("base"))) {
+            await installModule("base");
+        }
         odooStandardCodeLensProvider.setHotTestMode(true);
         showInformationMessage("test mode", "Hot test mode enabled");
 
         // Start hot test server with debug session monitoring
-        await startHotTestServer();
+        await startHotTestShell();
     } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to start hot test: ${error.message}`);
         throw error;
     } finally {
-        await forceRemoveHackModules(["hot_test"]);
         odooStandardCodeLensProvider.setHotTestMode(false);
     }
 }
@@ -52,23 +42,26 @@ export async function runHotTest(
         vscode.window.showErrorMessage("Hot test mode is not enabled");
         return;
     }
+    if (!(await isModuleInstalled(moduleName))) {
+        stopCurrentDebugTerminal();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await installModule(moduleName);
+        vscode.commands.executeCommand("odooTest.startHotTest"); // start hot test with command lock
+        await getCurrentDebugTerminal(10000);
+    }
 
     // Send notification to PostgreSQL
     const testTags = methodName
         ? `/${moduleName}:${className}.${methodName}`
         : `/${moduleName}:${className}`;
 
-    const payload = JSON.stringify({
-        jsonrpc: "2.0",
-        method: "run_test",
-        params: {
-            module: moduleName,
-            test_tags: testTags,
-        },
-    });
-
     try {
-        await sendNotification("hot_test", payload);
+        sendTextToCurrentDebugTerminal(
+            indentPython(`
+            from odoo.tests.shell import run_tests
+            run_tests(env,["${moduleName}"], "${testTags}")
+        `),
+        );
         const testName = methodName || className;
         showInformationMessage("test", `Test: ${testName}`);
     } catch (error: any) {
@@ -89,16 +82,13 @@ export async function toggleHotTestLogSql(
         odooStandardCodeLensProvider.toggleHotTestLogSql();
         const isEnabled = odooStandardCodeLensProvider.getHotTestLogSqlEnabled();
 
-        // Send notification to PostgreSQL
-        const payload = JSON.stringify({
-            jsonrpc: "2.0",
-            method: "log_sql",
-            params: {
-                enabled: isEnabled,
-            },
-        });
-
-        await sendNotification("hot_test", payload);
+        // Also send a sample command to Odoo shell terminal
+        sendTextToCurrentDebugTerminal(
+            indentPython(`
+            import logging
+            logging.getLogger("odoo.sql_db").setLevel(${isEnabled ? "logging.DEBUG" : "logging.INFO"})
+        `),
+        );
     } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to toggle log SQL: ${error.message}`);
         throw error;

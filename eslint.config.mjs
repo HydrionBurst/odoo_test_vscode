@@ -14,6 +14,9 @@ export default [
         sourceType: "module",
         ecmaVersion: 2022,
       },
+      globals: {
+        setTimeout: "readonly",
+      }
     },
     plugins: {
       "@typescript-eslint": tseslint,
