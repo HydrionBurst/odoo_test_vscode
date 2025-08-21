@@ -3,6 +3,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { OdooVersion } from "./odoo";
+import { showInformationMessage } from "./vscode";
 
 export class Configuration {
     static extensionPath: string;
@@ -243,7 +244,10 @@ export class Configuration {
 
         // Show success message if no errors
         if (!hasErrors) {
-            vscode.window.showInformationMessage("Configuration validation passed successfully!");
+            showInformationMessage(
+                "configuration",
+                "Configuration validation passed successfully!",
+            );
         }
     }
 

@@ -100,6 +100,7 @@ export class OdooUpgradeCodeLensProvider implements vscode.CodeLensProvider {
                         title: `$(trash) ${databaseName}`,
                         command: "odooTest.cleanupTest",
                         arguments: ["upgrade"],
+                        tooltip: `Cleanup ${databaseName}`,
                     }),
                 );
             }
@@ -139,6 +140,7 @@ export class OdooUpgradeCodeLensProvider implements vscode.CodeLensProvider {
                             title: `$(trash) ${databaseName}`,
                             command: "odooTest.cleanupTest",
                             arguments: ["upgrade"],
+                            tooltip: `Cleanup ${databaseName}`,
                         }),
                     );
                 }
@@ -175,6 +177,7 @@ export class OdooUpgradeCodeLensProvider implements vscode.CodeLensProvider {
                                 title: `$(trash) ${databaseName}`,
                                 command: "odooTest.cleanupTest",
                                 arguments: ["upgrade"],
+                                tooltip: `Cleanup ${databaseName}`,
                             }),
                         );
                     }

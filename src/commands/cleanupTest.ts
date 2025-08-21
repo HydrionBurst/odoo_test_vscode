@@ -1,10 +1,9 @@
-import * as vscode from "vscode";
-
 import { Configuration } from "../utils/configuration";
 import { deleteDump, dropDatabase } from "../utils/database";
+import { showInformationMessage } from "../utils/vscode";
 
 export async function cleanupTest(testCategory: "standard" | "upgrade" | "standalone") {
-    vscode.window.showInformationMessage(`Cleanup ${testCategory} tests`);
+    showInformationMessage("cleanup", `Cleanup ${testCategory} tests`);
 
     let dumpNames: string[];
     if (testCategory === "upgrade") {

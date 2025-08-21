@@ -1,9 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import * as dgram from "dgram";
 
 import { Configuration } from "./configuration";
 import { execAsync } from "./tools";
+import { showInformationMessage } from "./vscode";
 
 /**
  * delete database
@@ -46,7 +48,7 @@ export async function restoreDatabase(dumpName: string): Promise<void> {
     const databaseName = Configuration.get("databaseName") as string;
     const dumpDir = getDumpDir();
     const dumpFile = path.join(dumpDir, dumpName);
-    vscode.window.showInformationMessage(`Restore ${databaseName} from ${dumpName}`);
+    showInformationMessage("dump restore", `Restore ${databaseName} from ${dumpName}`);
 
     try {
         await execAsync(`pg_restore -d ${databaseName} ${dumpFile}`);
@@ -63,7 +65,7 @@ export async function dumpDatabase(dumpName: string): Promise<void> {
     const databaseName = Configuration.get("databaseName") as string;
     const dumpDir = getDumpDir();
     const dumpFile = path.join(dumpDir, dumpName);
-    vscode.window.showInformationMessage(`Dump ${databaseName} to ${dumpName}`);
+    showInformationMessage("dump restore", `Dump ${databaseName} to ${dumpName}`);
 
     try {
         await execAsync(`pg_dump -Fc -f ${dumpFile} ${databaseName}`);
@@ -93,18 +95,28 @@ export function deleteDump(dumpName: string): number {
 }
 
 /**
- * Send notification to PostgreSQL using pg_notify
+ * Send notification to Hot Test UDP server
  */
 export async function sendNotification(channel: string, payload: string): Promise<void> {
     try {
-        // Properly escape the payload for PostgreSQL string literal
-        const escapedPayload = payload
-            .replace(/\\/g, "\\\\") // Escape backslashes first
-            .replace(/'/g, "''") // Escape single quotes for PostgreSQL
-            .replace(/"/g, '\\"'); // Escape double quotes for PostgreSQL
-        await execAsync(
-            `psql -d postgres -c "SELECT pg_notify('${channel}', '${escapedPayload}');"`,
-        );
+        const host = "127.0.0.1";
+        const port = 9999;
+        await new Promise<void>((resolve, reject) => {
+            const socket = dgram.createSocket("udp4");
+            const message = Buffer.from(payload, "utf8");
+            socket.once("error", (err) => {
+                socket.close();
+                reject(err);
+            });
+            socket.send(message, port, host, (err) => {
+                socket.close();
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve();
+            });
+        });
     } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to send notification: ${error.message}`);
         throw error;

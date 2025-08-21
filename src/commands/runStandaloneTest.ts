@@ -1,5 +1,3 @@
-import * as vscode from "vscode";
-
 import {
     checkDumpExists,
     createDatabase,
@@ -13,6 +11,7 @@ import {
     isModuleInstalled,
     runStandaloneTest as runStandaloneTestOdoo,
 } from "../utils/odoo";
+import { showInformationMessage } from "../utils/vscode";
 
 export async function runStandaloneTest(moduleName: string, tagName: string) {
     const dumpName = "standalone.dump";
@@ -23,7 +22,7 @@ export async function runStandaloneTest(moduleName: string, tagName: string) {
         await restoreDatabase(dumpName);
     }
     if (!(await isModuleInstalled(moduleName))) {
-        vscode.window.showInformationMessage(`Install module: ${moduleName}`);
+        showInformationMessage("install", `Install module: ${moduleName}`);
         await installModule(moduleName);
         deleteDump(dumpName);
         await dumpDatabase(dumpName);
@@ -31,6 +30,6 @@ export async function runStandaloneTest(moduleName: string, tagName: string) {
         await dumpDatabase(dumpName);
     }
 
-    vscode.window.showInformationMessage(`Run standalone test: ${tagName}`);
+    showInformationMessage("test", `Run standalone test: ${tagName}`);
     await runStandaloneTestOdoo(tagName);
 }

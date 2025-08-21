@@ -3,7 +3,8 @@ import * as vscode from "vscode";
 import { cleanupTest } from "./commands/cleanupTest";
 import { Configuration } from "./utils/configuration";
 import { dumpTestDatabase } from "./commands/dumpTestDatabase";
-import { OdooAddonsCodeLensProvider } from "./codelens/OdooAddonsCodeLensProvider";
+import { OdooStandardCodeLensProvider } from "./codelens/OdooStandardCodeLensProvider";
+import { OdooStandaloneCodeLensProvider } from "./codelens/OdooStandaloneCodeLensProvider";
 import { OdooUpgradeCodeLensProvider } from "./codelens/OdooUpgradeCodeLensProvider";
 import { checkUpgradeTest, prepareUpgrade, upgradeDatabase } from "./commands/runUpgrade";
 import { rerun, saveLastCommand } from "./commands/rerun";
@@ -27,13 +28,18 @@ export function activate(context: vscode.ExtensionContext) {
     }
     Configuration.extensionPath = context.extensionPath;
 
-    const odooAddonsCodeLensProvider = new OdooAddonsCodeLensProvider();
+    const odooStandardCodeLensProvider = new OdooStandardCodeLensProvider();
+    const odooStandaloneCodeLensProvider = new OdooStandaloneCodeLensProvider();
     const odooUpgradeCodeLensProvider = new OdooUpgradeCodeLensProvider();
 
     context.subscriptions.push(
         vscode.languages.registerCodeLensProvider(
             { language: "python", scheme: "file" },
-            odooAddonsCodeLensProvider,
+            odooStandardCodeLensProvider,
+        ),
+        vscode.languages.registerCodeLensProvider(
+            { language: "python", scheme: "file" },
+            odooStandaloneCodeLensProvider,
         ),
         vscode.languages.registerCodeLensProvider(
             { language: "python", scheme: "file" },
@@ -51,6 +57,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeConfiguration(async (event) => {
             if (event.affectsConfiguration("odooTest")) {
                 Configuration.check();
+            }
+            if (event.affectsConfiguration("odooTest.standardTestLayout")) {
+                odooStandardCodeLensProvider.switchButtonLayer(0);
             }
         }),
     );
@@ -77,11 +86,11 @@ export function activate(context: vscode.ExtensionContext) {
         // cleanupTest during debugging or dumpDatabase is not allowed
         ["odooTest.cleanupTest", debugCommandMutex.guard(databaseCommandMutex.guard(cleanupTest))],
 
-        ["odooTest.switchRunMode", () => odooAddonsCodeLensProvider.switchRunMode()],
-        ["odooTest.toggleHotTestLogSql", () => toggleHotTestLogSql(odooAddonsCodeLensProvider)],
+        ["odooTest.switchButtonLayer", () => odooStandardCodeLensProvider.switchButtonLayer()],
+        ["odooTest.toggleHotTestLogSql", () => toggleHotTestLogSql(odooStandardCodeLensProvider)],
         [
             "odooTest.startHotTest",
-            debugCommandMutex.guard(() => startHotTest(odooAddonsCodeLensProvider)),
+            debugCommandMutex.guard(() => startHotTest(odooStandardCodeLensProvider)),
         ],
         ["odooTest.rerun", rerun],
         ["odooTest.resetPaths", Configuration.autoSetPaths],

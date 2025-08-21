@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { OdooAddonsCodeLensProvider } from "../codelens/OdooAddonsCodeLensProvider";
+import { OdooStandardCodeLensProvider } from "../codelens/OdooStandardCodeLensProvider";
 import { Configuration } from "../utils/configuration";
 import { sendNotification } from "../utils/database";
 import {
@@ -10,23 +10,23 @@ import {
     isModuleInstalled,
     startHotTestServer,
 } from "../utils/odoo";
+import { showInformationMessage } from "../utils/vscode";
 
 /**
  * Start hot test mode
  */
-export async function startHotTest(odooAddonsCodeLensProvider: OdooAddonsCodeLensProvider) {
+export async function startHotTest(odooStandardCodeLensProvider: OdooStandardCodeLensProvider) {
     try {
         // Check if hot_test module is installed
         const isInstalled = await isModuleInstalled("hot_test");
         if (!isInstalled) {
-            vscode.window.showInformationMessage("Installing hot_test module...");
             const extraAddonsPath = path.join(Configuration.extensionPath, "odoo_addons");
             await installModule("hot_test", [extraAddonsPath]);
         }
 
         // Set hot test mode to true
-        odooAddonsCodeLensProvider.setHotTestMode(true);
-        vscode.window.showInformationMessage("Hot test mode enabled");
+        odooStandardCodeLensProvider.setHotTestMode(true);
+        showInformationMessage("test mode", "Hot test mode enabled");
 
         // Start hot test server with debug session monitoring
         await startHotTestServer();
@@ -35,7 +35,7 @@ export async function startHotTest(odooAddonsCodeLensProvider: OdooAddonsCodeLen
         throw error;
     } finally {
         await forceRemoveHackModules(["hot_test"]);
-        odooAddonsCodeLensProvider.setHotTestMode(false);
+        odooStandardCodeLensProvider.setHotTestMode(false);
     }
 }
 
@@ -43,12 +43,12 @@ export async function startHotTest(odooAddonsCodeLensProvider: OdooAddonsCodeLen
  * Run hot test by sending notification to PostgreSQL
  */
 export async function runHotTest(
-    odooAddonsCodeLensProvider: OdooAddonsCodeLensProvider,
+    odooStandardCodeLensProvider: OdooStandardCodeLensProvider,
     moduleName: string,
     className: string,
     methodName?: string,
 ) {
-    if (!odooAddonsCodeLensProvider.isHotTestMode()) {
+    if (!odooStandardCodeLensProvider.isHotTestMode()) {
         vscode.window.showErrorMessage("Hot test mode is not enabled");
         return;
     }
@@ -67,15 +67,10 @@ export async function runHotTest(
         },
     });
 
-    if (!isModuleInstalled(moduleName)) {
-        vscode.window.showErrorMessage(`Module ${moduleName} is not installed`);
-        return;
-    }
-
     try {
         await sendNotification("hot_test", payload);
         const testName = methodName || className;
-        vscode.window.showInformationMessage(`Hot test triggered: ${testName}`);
+        showInformationMessage("test", `Test: ${testName}`);
     } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to trigger hot test: ${error.message}`);
         throw error;
@@ -86,11 +81,13 @@ export async function runHotTest(
  * Toggle log SQL mode by sending notification to PostgreSQL
  * This function only works during hot test mode
  */
-export async function toggleHotTestLogSql(odooAddonsCodeLensProvider: any) {
+export async function toggleHotTestLogSql(
+    odooStandardCodeLensProvider: OdooStandardCodeLensProvider,
+) {
     try {
         // Toggle the state
-        odooAddonsCodeLensProvider.toggleHotTestLogSql();
-        const isEnabled = odooAddonsCodeLensProvider.getHotTestLogSqlEnabled();
+        odooStandardCodeLensProvider.toggleHotTestLogSql();
+        const isEnabled = odooStandardCodeLensProvider.getHotTestLogSqlEnabled();
 
         // Send notification to PostgreSQL
         const payload = JSON.stringify({
@@ -102,9 +99,6 @@ export async function toggleHotTestLogSql(odooAddonsCodeLensProvider: any) {
         });
 
         await sendNotification("hot_test", payload);
-
-        const status = isEnabled ? "ON" : "OFF";
-        vscode.window.showInformationMessage(`Log SQL mode: ${status}`);
     } catch (error: any) {
         vscode.window.showErrorMessage(`Failed to toggle log SQL: ${error.message}`);
         throw error;

@@ -26,6 +26,7 @@ import {
     runUpgrade,
     runUpgradeTest,
 } from "../utils/odoo";
+import { showInformationMessage } from "../utils/vscode";
 
 // Run the prepare method of an upgrade test class
 export async function prepareUpgrade(
@@ -91,7 +92,7 @@ export async function prepareUpgrade(
         }
         // check if the module has been installed
         if (!(await isModuleInstalled(module))) {
-            vscode.window.showInformationMessage(`Install module: ${module}`);
+            showInformationMessage("install", `Install module: ${module}`);
             const success = await installModule(module);
             if (!success) {
                 return;
@@ -106,7 +107,7 @@ export async function prepareUpgrade(
             return;
         }
 
-        vscode.window.showInformationMessage(`Prepare upgrade test data`);
+        showInformationMessage("test", `Prepare upgrade test data`);
         await runUpgradeTest("upgrade.test_prepare");
         const dumpPrepareName = `upgrade_prepare__${upgradeFrom}.dump`;
         deleteDump(dumpPrepareName);
@@ -139,7 +140,7 @@ export async function upgradeDatabase(
     await createDatabase();
     await restoreDatabase(dumpName);
 
-    vscode.window.showInformationMessage(`Upgrade all modules`);
+    showInformationMessage("test", `Upgrade all modules`);
     await runUpgrade();
 }
 
@@ -161,6 +162,6 @@ export async function checkUpgradeTest(module: string, className: string, filePa
     // extract /module_name/tests/xxx.py from xxx/xxx/module_name/tests/xxx.py
     const moduleTestPathMatch = linuxPath.match(/(\/[^/]+\/tests\/.*\.py)/);
     const testModulePath = moduleTestPathMatch ? moduleTestPathMatch[1] : "";
-    vscode.window.showInformationMessage(`Run upgrade check: ${className}`);
+    showInformationMessage("test", `Run upgrade check: ${className}`);
     await runUpgradeTest(`upgrade${testModulePath}:${className}.test_check`);
 }

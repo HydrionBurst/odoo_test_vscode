@@ -2,6 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { execAsync } from "./tools";
+import { showInformationMessage } from "./vscode";
 
 export async function getGitRepoPaths(paths: string[]): Promise<string[]> {
     const gitRepos = await Promise.all(
@@ -76,7 +77,7 @@ export async function isLocalGitBranch(path: string, branch: string): Promise<bo
 export async function checkoutGit(repoPath: string, name: string): Promise<boolean> {
     const repoName = path.basename(repoPath);
     try {
-        vscode.window.showInformationMessage(`Checkout to ${name} for ${repoName}`);
+        showInformationMessage("git", `Checkout to ${name} for ${repoName}`);
         await execAsync(`git checkout ${name}`, { cwd: repoPath });
         return true;
     } catch (error: any) {
