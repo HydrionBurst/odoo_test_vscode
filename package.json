@@ -103,6 +103,49 @@
           "type": "string",
           "description": "The directory path for storing database dumps.",
           "scope": "resource"
+        },
+        "odooTest.standardTestLayout": {
+          "type": "array",
+          "description": "Custom layout for standard test CodeLens buttons. Array of rows; each row is an array of tokens (one or more) from: 'run', 'updateRun', 'cleanup', 'dump', 'runDump'.",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "run",
+                "updateRun",
+                "cleanup",
+                "dump",
+                "runDump"
+              ]
+            },
+            "minItems": 1
+          },
+          "default": [
+            ["run", "cleanup"],
+            ["updateRun", "cleanup"],
+            ["runDump", "dump", "cleanup"]
+          ],
+          "scope": "window"
+        },
+        "odooTest.muteMessageTopics": {
+          "type": "array",
+          "description": "The topics to mute for messages.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cleanup",
+              "configuration",
+              "database",
+              "dump restore",
+              "git",
+              "install",
+              "test",
+              "test mode",
+              "upgrade"
+            ]
+          },
+          "scope": "window"
         }
       }
     }

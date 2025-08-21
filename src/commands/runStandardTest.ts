@@ -1,5 +1,3 @@
-import * as vscode from "vscode";
-
 import {
     checkDumpExists,
     createDatabase,
@@ -8,6 +6,7 @@ import {
     restoreDatabase,
 } from "../utils/database";
 import { installModule, isModuleInstalled, runStandardTest } from "../utils/odoo";
+import { showInformationMessage } from "../utils/vscode";
 
 export async function runTest(module: string, className: string, methodName?: string) {
     const testTags = methodName
@@ -15,10 +14,10 @@ export async function runTest(module: string, className: string, methodName?: st
         : `/${module}:${className}`;
     const testName = methodName || className;
     if (await isModuleInstalled(module)) {
-        vscode.window.showInformationMessage(`Test: ${testName}`);
+        showInformationMessage("test", `Test: ${testName}`);
         await runStandardTest(testTags);
     } else {
-        vscode.window.showInformationMessage(`Install & Test: ${testName}`);
+        showInformationMessage("test", `Install & Test: ${testName}`);
         await runStandardTest(testTags, { install: module });
     }
 }
@@ -30,10 +29,10 @@ export async function runUpdateTest(module: string, className: string, methodNam
     const testName = methodName || className;
     const installed = await isModuleInstalled(module);
     if (installed) {
-        vscode.window.showInformationMessage(`Upgrade & Test: ${testName}`);
+        showInformationMessage("test", `Upgrade & Test: ${testName}`);
         await runStandardTest(testTags, { update: module });
     } else {
-        vscode.window.showInformationMessage(`Install & Test: ${testName}`);
+        showInformationMessage("test", `Install & Test: ${testName}`);
         await runStandardTest(testTags, { install: module });
     }
 }
@@ -44,7 +43,7 @@ export async function runDumpTest(moduleName: string, className: string, methodN
     if (!checkDumpExists(dumpName)) {
         const installed = await isModuleInstalled(moduleName);
         if (!installed) {
-            vscode.window.showInformationMessage(`Install module: ${moduleName}`);
+            showInformationMessage("install", `Install module: ${moduleName}`);
             await installModule(moduleName);
         }
         await dumpDatabase(dumpName);

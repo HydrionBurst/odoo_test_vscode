@@ -5,6 +5,7 @@ import * as dgram from "dgram";
 
 import { Configuration } from "./configuration";
 import { execAsync } from "./tools";
+import { showInformationMessage } from "./vscode";
 
 /**
  * delete database
@@ -47,7 +48,7 @@ export async function restoreDatabase(dumpName: string): Promise<void> {
     const databaseName = Configuration.get("databaseName") as string;
     const dumpDir = getDumpDir();
     const dumpFile = path.join(dumpDir, dumpName);
-    vscode.window.showInformationMessage(`Restore ${databaseName} from ${dumpName}`);
+    showInformationMessage("dump restore", `Restore ${databaseName} from ${dumpName}`);
 
     try {
         await execAsync(`pg_restore -d ${databaseName} ${dumpFile}`);
@@ -64,7 +65,7 @@ export async function dumpDatabase(dumpName: string): Promise<void> {
     const databaseName = Configuration.get("databaseName") as string;
     const dumpDir = getDumpDir();
     const dumpFile = path.join(dumpDir, dumpName);
-    vscode.window.showInformationMessage(`Dump ${databaseName} to ${dumpName}`);
+    showInformationMessage("dump restore", `Dump ${databaseName} to ${dumpName}`);
 
     try {
         await execAsync(`pg_dump -Fc -f ${dumpFile} ${databaseName}`);

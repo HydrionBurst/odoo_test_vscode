@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { showInformationMessage } from "../utils/vscode";
 
 async function setConfig(configName: string, required: boolean = false) {
     const config = vscode.workspace.getConfiguration("odooTest");
@@ -12,7 +13,8 @@ async function setConfig(configName: string, required: boolean = false) {
     if ((!required || newValue) && newValue !== currentValue) {
         await config.update(configName, newValue, vscode.ConfigurationTarget.Workspace);
         const newConfig = vscode.workspace.getConfiguration("odooTest");
-        vscode.window.showInformationMessage(
+        showInformationMessage(
+            "configuration",
             `odooTest.${configName} changed to: ${newConfig.get<string>(configName) || ""}`,
         );
     }

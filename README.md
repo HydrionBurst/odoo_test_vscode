@@ -9,11 +9,12 @@ testing workflows.
 
 ## Features
 
-### Addons Test
+### Standard Test
 
-- **Automatic Detection**: Automatically detects Odoo test files and identifies test classes and methods
+- **Automatic Detection**: Automatically detects Odoo standard test files and identifies test classes and methods
 - **Run Test Buttons**: Provides "Run Test" buttons above each test method for quick execution
-- **Multiple Test Modes**: Supports standard tests, update tests, and dump tests with easy mode switching
+- **Multiple Test Modes**: Supports standard tests, update tests, and dump tests with easy mode switching. The button
+  layout is fully customizable through configuration `odooTest.standardTestLayout`.
 
 <div>
   <img src="docs/images/standard_run_test.png" alt="Standard Test Interface" width="300" style="margin-left: 20px;">
@@ -21,13 +22,8 @@ testing workflows.
   <img src="docs/images/standard_dump_test.png" alt="Standard Test Interface" width="300" style="margin-left: 20px;">
 </div>
 
-- **Standalone Tests**: Special support for `@standalone` decorated test functions with tag-based execution
+##### ⚡ Hot Test
 
-<div>
-  <img src="docs/images/standalone_test.png" alt="Standalone Test Interface" width="300" style="margin-left: 20px;">
-</div>
-
-### ⚡ Hot Test
 - **Start**: Open the Command Palette (Ctrl + Shift + P) and run "Odoo Test: Start Hot Test".
 - **Run tests**: Click the "Run Hot" CodeLens above a test class or any method starting with `test`.
 - **Auto reload**: Hot Test automatically reloads the Python test module. No need to restart Odoo after changing test code.
@@ -35,6 +31,14 @@ testing workflows.
 
 <div>
   <img src="docs/images/hot_test.png" alt="Hot Test Interface" width="300" style="margin-left: 20px;">
+</div>
+
+### Standalone Test
+- **Standalone Test Support**: Special support for `@standalone` decorated test functions with tag-based execution
+- **Dump database**: Automatically dump database to support rerun the test.
+
+<div>
+  <img src="docs/images/standalone_test.png" alt="Standalone Test Interface" width="300" style="margin-left: 20px;">
 </div>
 
 ### 🔄 Upgrade Test
@@ -86,6 +90,8 @@ database for upgrade.
 2. Users have to promise `git checkout BRANCH_NAME` command work locally.
 3. If the `odooTest.upgradeFrom` branch is not available in an addonsPath's git repo, the test flow will try its corresponding Odoo stable branch name.
 - **`odooTest.configPath`**: Path to Odoo configuration file. Can be used to add more customized odoo configurations.
+- **`odooTest.standardTestLayout`**: Json to customize the button layout for standard tests.
+- **`odooTest.muteMessageTopics`**: Mute specific message information.
 
 ### Auto Configuration
 

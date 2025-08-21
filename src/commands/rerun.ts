@@ -23,11 +23,5 @@ export async function rerun() {
     }
 
     const { command, args } = lastCommand;
-
-    try {
-        await vscode.commands.executeCommand(command, ...args);
-        vscode.window.showInformationMessage(`Rerunning: ${command}`);
-    } catch (error) {
-        vscode.window.showErrorMessage(`Failed to rerun command: ${error}`);
-    }
+    await vscode.commands.executeCommand(command, ...args);
 }

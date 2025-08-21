@@ -115,3 +115,9 @@ export function getDebugConfiguration(
     };
     return { workspaceFolder, configuration };
 }
+
+export function showInformationMessage(topic: string, message: string, ...items: any[]) {
+    if (!Configuration.get("muteMessageTopics").includes(topic)) {
+        vscode.window.showInformationMessage(message, ...items);
+    }
+}
