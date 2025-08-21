@@ -27,3 +27,20 @@ export class NonBlockingMutex {
         };
     }
 }
+
+const whitespaceOnlyRe = /^[ ]+$/gm;
+const leadingWhitespaceRe = /^([ ]*)(?:[^ \n])/gm;
+
+export function indentPython(code: string, prefix: string = ""): string {
+    code = code.replace(whitespaceOnlyRe, "");
+    const indents = [...code.matchAll(leadingWhitespaceRe)].map((match) => match[1]);
+    const margin = Math.min(...indents.map((indent) => indent.length));
+    if (margin > 0) {
+        code = code.replace(new RegExp(`^${" ".repeat(margin)}`, "gm"), "");
+    }
+    code = code.trim();
+    if (prefix) {
+        code = code.replace(/^(?!\s*$)/gm, prefix);
+    }
+    return code;
+}

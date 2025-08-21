@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import * as dgram from "dgram";
 
 import { Configuration } from "./configuration";
 import { execAsync } from "./tools";
@@ -92,35 +91,6 @@ export function deleteDump(dumpName: string): number {
     const dumpFile = path.join(dumpDir, dumpName);
     fs.unlinkSync(dumpFile);
     return 1;
-}
-
-/**
- * Send notification to Hot Test UDP server
- */
-export async function sendNotification(channel: string, payload: string): Promise<void> {
-    try {
-        const host = "127.0.0.1";
-        const port = 9999;
-        await new Promise<void>((resolve, reject) => {
-            const socket = dgram.createSocket("udp4");
-            const message = Buffer.from(payload, "utf8");
-            socket.once("error", (err) => {
-                socket.close();
-                reject(err);
-            });
-            socket.send(message, port, host, (err) => {
-                socket.close();
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve();
-            });
-        });
-    } catch (error: any) {
-        vscode.window.showErrorMessage(`Failed to send notification: ${error.message}`);
-        throw error;
-    }
 }
 
 function getDumpDir(): string {

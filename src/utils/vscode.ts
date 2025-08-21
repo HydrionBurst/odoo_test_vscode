@@ -3,6 +3,40 @@ import * as vscode from "vscode";
 
 import { Configuration } from "./configuration";
 
+let currentDebugTerminal: vscode.Terminal | undefined;
+
+export async function getCurrentDebugTerminal(
+    timeout: number,
+): Promise<vscode.Terminal | undefined> {
+    const startTime = Date.now();
+    while (!currentDebugTerminal) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        if (Date.now() - startTime > timeout) {
+            return undefined;
+        }
+    }
+    return currentDebugTerminal;
+}
+
+export function stopCurrentDebugTerminal() {
+    if (currentDebugTerminal && !currentDebugTerminal.exitStatus) {
+        currentDebugTerminal.dispose();
+    }
+    currentDebugTerminal = undefined;
+}
+
+/**
+ * Send text to the current debug terminal.
+ * If no terminal is tracked, fallback to the active terminal.
+ */
+export function sendTextToCurrentDebugTerminal(text: string, shouldExecute: boolean = true) {
+    if (!currentDebugTerminal || currentDebugTerminal.exitStatus) {
+        vscode.window.showWarningMessage("No debug terminal to send text to.");
+        return;
+    }
+    currentDebugTerminal.sendText(text, shouldExecute);
+}
+
 /**
  * Start a VSCode debug session and wait for it to terminate.
  * Returns true if the session started and terminated, false otherwise.
@@ -16,16 +50,24 @@ export async function startDebuggingAndWait(
         const odooTestId = `odoo_test_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         debugConfig.__odooTestWaitId = odooTestId;
 
-        const terminateDisposable = vscode.debug.onDidTerminateDebugSession((session) => {
+        const debugDisposable = vscode.debug.onDidTerminateDebugSession((session) => {
             if (odooTestId === session.configuration.__odooTestWaitId) {
-                terminateDisposable.dispose();
+                currentDebugTerminal = undefined;
+                debugDisposable.dispose();
                 resolve(true);
             }
         });
 
         vscode.debug.startDebugging(wsFolder, debugConfig, options).then((success) => {
-            if (!success) {
-                terminateDisposable.dispose();
+            if (success) {
+                // Note:
+                // We can neither know the used terminal from the debug session, nor know if a terminal
+                // in vscode.window.terminals is used by which debug session. This is the best effort
+                // based on the UI behavior. When the debug session is started, the active terminal will
+                // be automatically changed to its debug terminal if the terminal is not activated.
+                currentDebugTerminal = vscode.window.activeTerminal;
+            } else {
+                debugDisposable.dispose();
                 resolve(false);
             }
         });
@@ -35,12 +77,10 @@ export async function startDebuggingAndWait(
 /**
  * find the first launch configuration with the given name
  * @param debugConfigurationName name of the launch configuration
- * @param extraAddonsPaths extra addons paths to include
  * @returns { workspaceFolder, configuration }
  */
 export function getDebugConfiguration(
-    name: "standard" | "standalone" | "upgrade" = "standard",
-    extraAddonsPaths: string[] = [],
+    name: "standard" | "standalone" | "upgrade" | "shell" = "standard",
 ): {
     workspaceFolder: vscode.WorkspaceFolder | undefined;
     configuration: vscode.DebugConfiguration | undefined;
@@ -76,7 +116,11 @@ export function getDebugConfiguration(
     }
 
     const databaseName = Configuration.get("databaseName");
-    const args = ["-d", databaseName];
+    const args = [];
+    if (name === "shell") {
+        args.push("shell");
+    }
+    args.push("-d", databaseName);
 
     if (Configuration.get("configPath") && name !== "standalone") {
         args.push("-c", Configuration.get("configPath"));
@@ -86,16 +130,7 @@ export function getDebugConfiguration(
         path.relative(workspaceFolder.uri.fsPath, p),
     );
 
-    // Add extra addons paths if provided
-    const allAddonsPaths = [...addonsPaths];
-    for (const extraPath of extraAddonsPaths) {
-        const relativePath = path.relative(workspaceFolder.uri.fsPath, extraPath);
-        if (!allAddonsPaths.includes(relativePath)) {
-            allAddonsPaths.push(relativePath);
-        }
-    }
-
-    args.push("--addons-path", allAddonsPaths.join(","));
+    args.push("--addons-path", addonsPaths.join(","));
 
     if (name === "upgrade") {
         const upgradePath = Configuration.get("upgradePath").map((p: string) =>
