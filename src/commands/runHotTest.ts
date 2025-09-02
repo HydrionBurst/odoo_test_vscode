@@ -59,7 +59,7 @@ export async function runHotTest(
         sendTextToCurrentDebugTerminal(
             indentPython(`
             from odoo.tests.shell import run_tests
-            run_tests(env,["${moduleName}"], "${testTags}")
+            run_tests(env, "${testTags}", ["${moduleName}"], reload_tests=True)
         `),
         );
         const testName = methodName || className;
